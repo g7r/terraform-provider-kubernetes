@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"sync"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
@@ -45,6 +46,7 @@ type RawProviderServer struct {
 	OAPIFoundry                 cache[openapi.Foundry]
 	crds                        cache[[]unstructured.Unstructured]
 	checkValidCredentialsResult cache[[]*tfprotov5.Diagnostic]
+	tfTypeByGVK                 sync.Map
 
 	hostTFVersion string
 }

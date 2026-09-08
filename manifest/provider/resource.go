@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-provider-kubernetes/manifest/openapi"
@@ -82,7 +83,28 @@ func IsResourceNamespaced(gvk schema.GroupVersionKind, m meta.RESTMapper) (bool,
 
 // TFTypeFromOpenAPI generates a tftypes.Type representation of a Kubernetes resource
 // designated by the supplied GroupVersionKind resource id
+type tfTypeCacheEntry struct {
+	t     tftypes.Type
+	hints map[string]string
+}
+
 func (ps *RawProviderServer) TFTypeFromOpenAPI(ctx context.Context, gvk schema.GroupVersionKind, status bool) (tftypes.Type, map[string]string, error) {
+	if os.Getenv("K8S_PROVIDER_TYPE_CACHE") != "" {
+		key := fmt.Sprintf("%s|%t", gvk.String(), status)
+		if v, ok := ps.tfTypeByGVK.Load(key); ok {
+			e := v.(tfTypeCacheEntry)
+			return e.t, e.hints, nil
+		}
+		t, hints, err := ps.tfTypeFromOpenAPI(ctx, gvk, status)
+		if err == nil {
+			ps.tfTypeByGVK.Store(key, tfTypeCacheEntry{t: t, hints: hints})
+		}
+		return t, hints, err
+	}
+	return ps.tfTypeFromOpenAPI(ctx, gvk, status)
+}
+
+func (ps *RawProviderServer) tfTypeFromOpenAPI(ctx context.Context, gvk schema.GroupVersionKind, status bool) (tftypes.Type, map[string]string, error) {
 	var tsch tftypes.Type
 	var hints map[string]string
 
