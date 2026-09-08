@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -60,7 +61,11 @@ func getTypeFromSchema(elem *openapi3.Schema, stackdepth uint64, typeCache *sync
 		return nil, errors.New("cannot convert OpenAPI type (nil)")
 	}
 
-	h, herr := hashstructure.Hash(elem, nil)
+	var h uint64
+	herr := errors.New("type cache disabled")
+	if os.Getenv("K8S_PROVIDER_KEEP_HASH") != "" {
+		h, herr = hashstructure.Hash(elem, nil)
+	}
 
 	var t tftypes.Type
 
