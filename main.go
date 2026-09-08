@@ -9,6 +9,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -31,6 +33,10 @@ const (
 func main() {
 	debugFlag := flag.Bool("debug", false, "Start provider in stand-alone debug mode.")
 	flag.Parse()
+
+	if addr := os.Getenv("K8S_PROVIDER_PPROF_ADDR"); addr != "" {
+		go func() { log.Println(http.ListenAndServe(addr, nil)) }()
+	}
 
 	ctx := context.Background()
 	muxer, err := mux.MuxServer(ctx, Version)
