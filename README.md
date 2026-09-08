@@ -17,6 +17,33 @@ The Kubernetes provider for Terraform is a plugin that enables full lifecycle ma
 Please note: We take Terraform's security and our users' trust very seriously. If you believe you have found a security issue in the Terraform Kubernetes Provider, please responsibly disclose by contacting us at security@hashicorp.com.
 
 
+## About this fork
+
+This is [g7r/terraform-provider-kubernetes](https://github.com/g7r/terraform-provider-kubernetes),
+published to the Terraform Registry as `g7r/kubernetes`. It follows upstream
+releases and carries a small patch stack on top, mostly `kubernetes_manifest`
+plan performance.
+
+```hcl
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "g7r/kubernetes"
+      version = "3.2.1-joom.1"
+    }
+  }
+}
+```
+
+Versions follow upstream with a `-joom.N` prerelease suffix: `3.2.1-joom.1` is
+upstream v3.2.1 plus this fork's patches; `N` grows when the patches change on
+the same upstream base. Terraform requires an exact `version` for prerelease
+versions.
+
+The default branch is `doppelganger`. Upstream release tags are merged into it;
+history is never rewritten. `main` mirrors upstream `main` and carries no fork
+commits. See [AGENTS.md](AGENTS.md) for the maintenance and release procedure.
+
 ## Requirements
 
 -	[Terraform](https://www.terraform.io/downloads.html) 1.x.x
