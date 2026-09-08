@@ -587,6 +587,17 @@ func (s *RawProviderServer) ConfigureProvider(ctx context.Context, req *tfprotov
 		return response, nil
 	}
 
+	if v := os.Getenv("K8S_PROVIDER_QPS"); v != "" {
+		if f, err := strconv.ParseFloat(v, 32); err == nil {
+			clientConfig.QPS = float32(f)
+		}
+	}
+	if v := os.Getenv("K8S_PROVIDER_BURST"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			clientConfig.Burst = n
+		}
+	}
+
 	if s.logger.IsTrace() {
 		clientConfig.WrapTransport = loggingTransport
 	}
