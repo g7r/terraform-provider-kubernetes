@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	providerName = "registry.terraform.io/hashicorp/kubernetes"
+	providerName = "registry.terraform.io/g7r/kubernetes"
 
 	Version = "dev"
 )
