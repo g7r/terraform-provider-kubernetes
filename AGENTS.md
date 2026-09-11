@@ -17,27 +17,48 @@ of truth for everything except the patch stack listed below.
 - Fork changes land on `doppelganger` directly or via a feature branch merged
   into it. Do not `gh repo sync` or "Sync fork" into `doppelganger`: GitHub
   would merge upstream `main`, which breaks the tag-based versioning.
-- What the fork changes relative to upstream: `git diff v3.2.1 doppelganger`
-  (replace with the last merged upstream tag). Fork-only commits:
+- Upstream is a separate remote; `origin` is the fork:
+  `git remote add upstream https://github.com/hashicorp/terraform-provider-kubernetes`.
+  Its tags are needed for both the merges and the diffs below:
+  `git fetch upstream --tags`.
+- The last merged upstream tag is `v3.2.1` (commit `28fb611c`). What the fork
+  changes relative to it: `git diff v3.2.1 doppelganger`. Fork-only commits:
   `git log --first-parent v3.2.1..doppelganger`.
 
 ## Versioning
 
-`<upstream version>-joom.<N>`: `3.2.1-joom.1` is upstream v3.2.1 plus the patch
-stack; `N` increments for further fork releases on the same upstream base and
-resets to 1 after merging a new upstream tag. The version comes from the git
-tag (`v3.2.1-joom.1`), `version/VERSION` is upstream's and unused here.
-Terraform requires an exact `version = "3.2.1-joom.1"` pin for prerelease
-versions, which suits the consumers (Terragrunt pins exact provider versions).
+Upstream's major and minor, and a patch that encodes upstream's patch and this
+fork's revision as `700000 + <upstream patch> * 100 + <fork revision>`:
+
+| Upstream | Fork revision | Fork version |
+|---|---|---|
+| v3.2.0 | 1 | `3.2.700001` |
+| v3.2.1 | 1 | `3.2.700101` |
+| v3.2.1 | 2 | `3.2.700102` |
+| v3.2.4 | 1 | `3.2.700401` |
+| v3.3.0 | 1 | `3.3.700001` |
+
+The revision increments for further fork releases on the same upstream base and
+resets to 1 after merging a new upstream tag. Upstream patch and fork revision
+are capped at 99 each. The version comes from the git tag (`v3.2.700101`),
+`version/VERSION` is upstream's and unused here.
+
+Terraform drops SemVer prerelease versions from every range constraint and
+selects one only under exact equality, so a `-joom.N` suffix would force each
+consuming stack to pin one exact version; with the encoded patch they write
+`~> 3.2.0`. Build metadata (`3.2.1+joom.1`) is not an option either: Terraform
+ignores it when comparing, so two revisions of the same upstream base would
+compare equal. The `70` prefix keeps a fork version from being misread as an
+upstream one.
 
 ## Updating to a new upstream release
 
 ```sh
 git switch doppelganger && git pull --ff-only
-git fetch origin --tags            # origin = hashicorp/terraform-provider-kubernetes
+git fetch upstream --tags          # upstream = hashicorp/terraform-provider-kubernetes
 git merge v3.3.0                   # the release tag, not main
-# Upstream keeps touching the CI files this fork deleted; they come back as
-# modify/delete conflicts. Delete them again:
+# Upstream keeps touching the CI files and RELEASING.md this fork deleted; they
+# come back as modify/delete conflicts. Delete them again:
 git status --porcelain | awk '$1 == "DU" { print $2 }' | xargs -r git rm -q
 # Resolve any remaining conflicts in the patch stack, then:
 go build ./... && go vet ./manifest/... && go test ./manifest/...
@@ -53,9 +74,13 @@ change plan time on a stack with many `kubernetes_manifest` resources).
 ## Releasing
 
 ```sh
-git tag v3.3.0-joom.1 doppelganger
-git push g7r v3.3.0-joom.1        # g7r = this fork; adjust to your remote name
+# upstream v3.3.0, first fork release on that base
+git tag v3.3.700001 doppelganger
+git push origin v3.3.700001
 ```
+
+`release.yml` refuses any tag that does not match the scheme: a version cannot
+be withdrawn from the registry once published.
 
 `.github/workflows/release.yml` runs goreleaser (`.goreleaser.yml`): builds the
 same target matrix as upstream, signs `SHA256SUMS` with the GPG key from the
@@ -81,7 +106,7 @@ process environment of Terraform (Terragrunt/Atlantis).
 | Skip schema hashing while the type cache is disabled | `K8S_PROVIDER_KEEP_HASH=1` restores upstream | `hashstructure.Hash` fed a cache upstream disabled in v2.8.0; 47 % of provider CPU. |
 | Add optional pprof HTTP endpoint | `K8S_PROVIDER_PPROF_ADDR=127.0.0.1:6099` | Profile the provider while Terraform drives it. |
 | Point the provider address at the g7r fork | — | `registry.terraform.io/g7r/kubernetes` in `main.go` and `manifest/provider/plugin.go`. |
-| Drop upstream CI workflows and CRT release config; Release with goreleaser from git tags | — | Upstream releases through HashiCorp's private CRT pipeline. |
+| Drop upstream CI workflows, CRT release config and `RELEASING.md`; Release with goreleaser from git tags | — | Upstream releases through HashiCorp's private CRT pipeline. |
 
 Measured on a Terragrunt stack with 550 `kubernetes_manifest` resources:
 plan 161 s on upstream 3.2.1, 33 s with QPS=100/Burst=200 and the type cache.
