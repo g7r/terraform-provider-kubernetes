@@ -21,11 +21,10 @@ import (
 	"github.com/hashicorp/terraform-provider-kubernetes/internal/mux"
 )
 
-const (
-	providerName = "registry.terraform.io/g7r/kubernetes"
+const providerName = "registry.terraform.io/g7r/kubernetes"
 
-	Version = "dev"
-)
+// -X cannot write to a const, so goreleaser's version ldflag needs a var.
+var Version = "dev"
 
 // Generate docs for website
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
