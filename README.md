@@ -29,16 +29,16 @@ terraform {
   required_providers {
     kubernetes = {
       source  = "g7r/kubernetes"
-      version = "3.2.1-joom.1"
+      version = "~> 3.2.0"
     }
   }
 }
 ```
 
-Versions follow upstream with a `-joom.N` prerelease suffix: `3.2.1-joom.1` is
-upstream v3.2.1 plus this fork's patches; `N` grows when the patches change on
-the same upstream base. Terraform requires an exact `version` for prerelease
-versions.
+Versions keep upstream's major and minor and encode upstream's patch plus this
+fork's revision into the patch: `3.2.700101` is upstream v3.2.1, fork revision
+1, and `3.2.700102` is the next fork release on the same base. See
+[AGENTS.md](AGENTS.md#versioning) for the full rule.
 
 The default branch is `doppelganger`. Upstream release tags are merged into it;
 history is never rewritten. `main` mirrors upstream `main` and carries no fork

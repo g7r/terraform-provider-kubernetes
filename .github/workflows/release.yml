@@ -12,6 +12,12 @@ jobs:
   goreleaser:
     runs-on: ubuntu-latest
     steps:
+      - name: Check the tag matches the fork's versioning scheme
+        run: |
+          if ! printf '%s' "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.70[0-9]{4}$'; then
+            echo "::error::$GITHUB_REF_NAME is not vMAJOR.MINOR.70PPRR; see AGENTS.md#versioning"
+            exit 1
+          fi
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
